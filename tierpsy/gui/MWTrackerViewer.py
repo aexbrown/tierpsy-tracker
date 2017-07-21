@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import QApplication, QMessageBox, QShortcut
 from tierpsy.analysis.feat_create.obtainFeatures import getWormFeaturesFilt
 from tierpsy.analysis.ske_create.helperIterROI import getWormROI
 from tierpsy.analysis.ske_filt.getFilteredSkels import getValidIndexes
-from tierpsy.analysis.ske_filt import _get_feat_filt_param
+from tierpsy.analysis.ske_filt import get_feat_filt_param
 
 from tierpsy.gui.AnalysisProgress import WorkerFunQt, AnalysisProgress
 from tierpsy.gui.MWTrackerViewer_ui import Ui_MWTrackerViewer
@@ -68,7 +68,7 @@ class MWTrackerViewer_GUI(TrackerViewerAuxGUI):
         self.ui.comboBox_labelType.currentIndexChanged.connect(
             self.selectWormIndexType)
 
-        self.ui.pushButton_feats.clicked.connect(self.getManualFeatures)
+        
 
         # flags for RW and FF
         self.RW, self.FF = 1, 2
@@ -117,7 +117,11 @@ class MWTrackerViewer_GUI(TrackerViewerAuxGUI):
         self.ui.pushButton_join.setShortcut(QKeySequence(Qt.Key_J))
         self.ui.pushButton_split.setShortcut(QKeySequence(Qt.Key_S))
 
-    
+        
+        #This part is broken I think I will remove it from here, and force the user to use BatchProcessing
+        self.ui.pushButton_feats.hide() 
+        #self.ui.pushButton_feats.clicked.connect(self.getManualFeatures)
+
 
     def keyPressEvent(self, event):
         #MORE SHORTCUTS
@@ -240,7 +244,7 @@ class MWTrackerViewer_GUI(TrackerViewerAuxGUI):
                 'bad_seg_thresh',
                 'min_displacement']}
             except (KeyError, tables.exceptions.NoSuchNodeError):
-                self.feat_filt_param = _get_feat_filt_param(self.param_default.p_dict)
+                self.feat_filt_param = get_feat_filt_param(self.param_default.p_dict)
 
         self.expected_fps = read_fps(self.vfilename)
         

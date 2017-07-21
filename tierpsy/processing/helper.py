@@ -8,7 +8,7 @@ import os
 import errno
 import sys
 import fnmatch
-from tierpsy.helper.misc import RESERVED_EXT
+from tierpsy.helper.misc import RESERVED_EXT, replace_subdir
 from tierpsy.helper.params.tracker_param import valid_options
 from tierpsy.helper.params.docs_analysis_points import dflt_analysis_points
 
@@ -57,6 +57,8 @@ def create_script(base_cmd, args, argkws):
 
     base_cmd arg1 ... --argkw_key1 argkw_val1 ...
     '''
+    base_cmd = [ x for x in base_cmd if x]
+
     cmd = base_cmd + args
     for key, dat in argkws.items():
         if isinstance(dat, bool):
@@ -68,16 +70,16 @@ def create_script(base_cmd, args, argkws):
             cmd += ['--' + key, str(dat)]
     return cmd
 
-def get_real_script_path(fullfile):
+def get_real_script_path(fullfile, base_name=''):
     '''get the path name that works with pyinstaller binaries'''
     try:
-        base_name = os.path.splitext(os.path.basename(fullfile))[0]
+        if not base_name:
+            base_name = os.path.splitext(os.path.basename(fullfile))[0]
         # use this directory if it is a one-file produced by pyinstaller
-        script_cmd = [os.path.join(sys._MEIPASS, base_name)]
+        exec_fname = os.path.join(sys._MEIPASS, base_name)
         if os.name == 'nt':
-            script_cmd[0] += '.exe'
-        return script_cmd
-    
+            exec_fname += '.exe'
+        return [exec_fname]
     except AttributeError:
         return [sys.executable, os.path.realpath(fullfile)]
 
@@ -104,29 +106,13 @@ def remove_border_checkpoints(list_of_points, last_valid, index):
     
     return list_of_points
 
-def _replace_subdir(original_dir, original_subdir, new_subdir):
-    # construct the results dir on base of the mask_dir_root
-    subdir_list = original_dir.split(os.sep)
-
-    for ii in range(len(subdir_list))[::-1]:
-        if subdir_list[ii] == original_subdir:
-            subdir_list[ii] = new_subdir
-            break
-    # the counter arrived to zero, add Results at the end of the directory
-    if ii == 0:
-        if subdir_list[-1] == '':
-            del subdir_list[-1]
-        subdir_list.append(new_subdir)
-
-    return (os.sep).join(subdir_list)
-
 
 def get_results_dir(mask_files_dir):
-    return _replace_subdir(mask_files_dir, 'MaskedVideos', 'Results')
+    return replace_subdir(mask_files_dir, 'MaskedVideos', 'Results')
 
 
 def get_masks_dir(videos_dir):
     if 'Worm_Videos' in videos_dir:
-        return _replace_subdir(videos_dir, 'Worm_Videos', 'MaskedVideos')
+        return replace_subdir(videos_dir, 'Worm_Videos', 'MaskedVideos')
     else:
-        return _replace_subdir(videos_dir, 'RawVideos', 'MaskedVideos')
+        return replace_subdir(videos_dir, 'RawVideos', 'MaskedVideos')

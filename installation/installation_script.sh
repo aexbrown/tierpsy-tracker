@@ -119,7 +119,7 @@ function linux_dependencies {
 		"Ubuntu")
 		ubuntu_dependencies
 		;;
-		"RedHat*"|"CentOS")
+		"RedHat*"|"CentOS"|"Scientific")
 		redhat_dependencies
 		;;
 	esac
@@ -136,10 +136,13 @@ function ubuntu_dependencies {
 }
 
 function redhat_dependencies {
-	sudo yum -y install git
+	yum update
+	yum -y groupinstall "Development tools"
+	yum install -y bzip2 git
+	yum install -y epel-release
 
-	# opencv3 dependencies (http://docs.opencv.org/3.0-beta/doc/py_tutorials/py_setup/py_setup_in_fedora/py_setup_in_fedora.html)
-	sudo yum -y install gcc gcc-c++ cmake gtk2-devel libdc1394-devel libv4l-devel ffmpeg-devel \
+	rpm -Uvh http://li.nux.ro/download/nux/dextop/el7/x86_64/nux-dextop-release-0-1.el7.nux.noarch.rpm || \
+	yum -y install gtk2-devel libdc1394-devel libv4l-devel ffmpeg-devel \
 	gstreamer-plugins-base-devel libpng-devel libjpeg-turbo-devel jasper-devel openexr-devel \
 	libtiff-devel libwebp-devel tbb-devel eigen3-devel
 }
@@ -169,7 +172,7 @@ function build_opencv3_anaconda {
 
 function opencv_anaconda {
 	conda config --add channels menpo
-	read -r -p "Would you like to compile openCV? Otherwise I will try to download a previously compiled version that might not be compatible with your system. [y/N] " response
+	read -r -p "Would you like to compile openCV? Otherwise I will try to download it from anaconda and you might not be able to read videos. [y/N] " response
 	case "$response" in [yY][eE][sS]|[yY])
 		OPENCV_CUR_VER=`python3 -c "import cv2; print(cv2.__version__)" 2>/dev/null` || true
 		if [[ ! -z "$OPENCV_CUR_VER" ]]; then
@@ -183,7 +186,8 @@ function opencv_anaconda {
 		fi
 		;;
 		*)
-	    conda install -y --channel https://conda.anaconda.org/ver228 opencv3
+	    conda install -y opencv3
+	    #conda install -y --channel https://conda.anaconda.org/ver228 opencv3
 	    ;;
 	esac
 }
@@ -287,9 +291,6 @@ function exec_all {
 		osx_dependencies || :
 		;;
 		
-		"Linux"*)
-		linux_dependencies || :
-		;;
 	esac
 
 	if [[ $1 == 'brew' ]]; then
@@ -328,6 +329,9 @@ case $1 in
 	;;
 	"--tests")
 	download_examples
+	;;
+	"--linux_dependencies")
+	linux_dependencies
 	;;
 	*)
 	echo "Exiting... Unrecognized argument: $1"

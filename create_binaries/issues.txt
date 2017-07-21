@@ -2,8 +2,7 @@
 
 * Got some issue related with different versions of libfreetype.6.dylib.
 I can check this using:
-	sudo find / -name libfreetype.6.dylib
-	otool -L path_to_libfreetype
+	sudo find / -name libfreetype.6.dylib -exec otool -L {} \;
 
 I find that I had an old version of PIL, and pyinstaller was pulling libfreetype.6.dylib. I deleted that folder (I installed too a new version of pillow, PIL seems discontinued).
 
@@ -23,3 +22,5 @@ hiddenimports=['h5py.defs', 'h5py.utils', 'h5py.h5ac', 'h5py._proxy',
 	conda install nomkl numpy scipy scikit-learn numexpr
 	conda remove mkl mkl-service
 
+* I recieve an error of a missing package 'future'. Just use:
+	conda install futures

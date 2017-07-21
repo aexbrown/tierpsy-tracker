@@ -1,22 +1,25 @@
 # -*- mode: python -*-
+#hidden imports needed for tierpsy, maybe there is a better way to call this...
+import tierpsy.analysis
+base_name = os.path.dirname(tierpsy.analysis.__file__)
+analysis_steps = [x for x in os.listdir(base_name) if os.path.exists(os.path.join(base_name, x, '__init__.py'))]
+hidden_tierspy = ['tierpsy.analysis.' + x for x in analysis_steps]
+print(hidden_tierspy)
+
 import os
 import sys
-import MWTracker
+from PyInstaller.compat import is_win, is_darwin, is_linux
+
+import tierpsy
 import open_worm_analysis_toolbox
+from tierpsy.helper.misc import FFMPEG_CMD, FFPROBE_CMD
+from tierpsy.gui import SelectApp
 
-
-from MWTracker.helper.misc import FFMPEG_CMD, FFPROBE_CMD
-from MWTracker.gui import SelectApp
-
-IS_WIN =  (sys.platform == 'win32')
-IS_MAC =  (sys.platform == 'darwin')
-IS_LINUX =  (sys.platform == 'linux')
-
-#get MWConsole main path
+#get TierpsyTracker main path
 SRC_SCRIPT_PATH = SelectApp.__file__
 
 DST_BUILD=os.path.abspath('.')
-CREATE_CONSOLE= IS_WIN #make a separated console only in windows. I have to do this due to a problem with pyinstaller
+CREATE_CONSOLE= is_win #make a separated console only in windows. I have to do this due to a problem with pyinstaller
 
 DEBUG = False
 
@@ -34,15 +37,15 @@ ow_eigen_dst = os.path.join('open_worm_analysis_toolbox', ow_eigen)
 
 #add ffmpeg and ffprobe
 ffmpeg_src = FFMPEG_CMD
-ffmpeg_dst = os.path.join('misc', os.path.basename(FFMPEG_CMD))
+ffmpeg_dst = os.path.join('extras', os.path.basename(FFMPEG_CMD))
 ffprobe_src = FFPROBE_CMD
-ffprobe_dst = os.path.join('misc', os.path.basename(FFPROBE_CMD))
+ffprobe_dst = os.path.join('extras', os.path.basename(FFPROBE_CMD))
 
 #add prev compiled binary (they should have been ran before)
-proccess_bin_dst = 'ProcessWormsWorker'
-if IS_WIN:
+proccess_bin_dst = 'ProcessWorker'
+if is_win:
   proccess_bin_dst += '.exe'
-proccess_bin_src = os.path.join(DST_BUILD, 'dist', 'ProcessWormsWorker', proccess_bin_dst)
+proccess_bin_src = os.path.join(DST_BUILD, 'dist', 'ProcessWorker', proccess_bin_dst)
 
 #create added files
 added_datas = [(ow_feat_dst, ow_feat_src, 'DATA'),
@@ -52,19 +55,19 @@ added_datas = [(ow_feat_dst, ow_feat_src, 'DATA'),
         (ffprobe_dst, ffprobe_src, 'DATA')]
 
 #I add the file separator at the end, it makes my life easier later on
-MWTracker_path = os.path.dirname(MWTracker.__file__)
-MWTracker_path += os.sep
+tierpsy_path = os.path.dirname(tierpsy.__file__)
+tierpsy_path += os.sep
 
-#add all the files in misc
-for (dirpath, dirnames, filenames) in os.walk(os.path.join(MWTracker_path, 'misc')):
+#add all the files in extras
+for (dirpath, dirnames, filenames) in os.walk(os.path.join(tierpsy_path, 'extras')):
   for fname in filenames:
     if not fname.startswith('.'):
       fname_src = os.path.join(dirpath, fname)
-      fname_dst = fname_src.replace(MWTracker_path, '')
+      fname_dst = fname_src.replace(tierpsy_path, '')
       added_datas.append((fname_dst, fname_src, 'DATA'))
 
 #copy additional dll in windows
-if IS_WIN:
+if is_win:
   import glob
   conda_bin = os.path.join(os.path.dirname(sys.executable), 'Library', 'bin')
   libopenh264_src = glob.glob(os.path.join(conda_bin, 'openh264*.dll'))
@@ -82,6 +85,8 @@ else:
       added_datas.append((dst, src, 'DATA'))
       print('<>><>>>>>>>>>>', dst)
 
+    #THIS LIBRARY IS PROBLEMATIC BECAUSE THERE ARE MANY VERSIONS IN THE SYSTEM I HAVE TO IMPORT IT MANUALLY, BUT THIS COULD BREAK IN THE FUTURE
+    
 
 block_cipher = None
 a = Analysis([SRC_SCRIPT_PATH],
@@ -89,7 +94,7 @@ a = Analysis([SRC_SCRIPT_PATH],
              binaries=None,
              datas = None,
              hiddenimports=['h5py.defs', 'h5py.utils', 'h5py.h5ac', 'h5py._proxy',
-             'cython', 'sklearn', 'sklearn.neighbors.typedefs'],
+             'cython', 'sklearn', 'sklearn.neighbors.typedefs', 'pywt._extensions._cwt'] + hidden_tierspy,
              hookspath=[],
              runtime_hooks=[],
              excludes=['PyQt4', 'PyQt4.QtCore', 'PyQt4.QtGui'],
@@ -97,8 +102,11 @@ a = Analysis([SRC_SCRIPT_PATH],
              win_private_assemblies=False,
              cipher=block_cipher)
 #i was having problems with adding datas using Analysis, i decided to add them directly to a.datas
-a.datas += added_datas
 
+a.datas += added_datas
+if is_darwin:
+  a.binaries.append(('libfreetype.6.dylib', '/usr/local/opt/freetype/lib/libfreetype.6.dylib', 'BINARY'))
+print([x for x in a.binaries if 'libfreetype' in x[0]])
 
 
 pyz = PYZ(a.pure, a.zipped_data,
@@ -112,20 +120,20 @@ if not DEBUG:
             a.binaries,
             a.zipfiles,
             a.datas,
-            name='MWConsole',
+            name='TierpsyTracker',
             debug=False,
             strip=False,
             upx=True,
             console=CREATE_CONSOLE )
 
-  if IS_MAC:
+  if is_darwin:
 
     app = BUNDLE(exe,
-                 name='MWConsole.app',
+                 name='TierpsyTracker.app',
                  icon=None,
                  bundle_identifier=None,
                  info_plist={
-                  'CFBundleShortVersionString' : MWTracker.__version__,
+                  'CFBundleShortVersionString' : tierpsy.__version__,
                   'NSHighResolutionCapable': 'True'
                   }
                 )
@@ -136,7 +144,7 @@ else:
   exe = EXE(pyz,
             a.scripts,
             exclude_binaries=True,
-            name='MWConsole',
+            name='TierpsyTracker',
             debug=False,
             strip=False,
             upx=True,
@@ -148,4 +156,4 @@ else:
                  a.datas,
                  strip=False,
                  upx=True,
-                 name='MWConsole')
+                 name='TierpsyTracker')

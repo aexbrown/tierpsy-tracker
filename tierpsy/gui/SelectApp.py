@@ -1,32 +1,37 @@
 
 from functools import partial
+from collections import OrderedDict
+
 from PyQt5.QtWidgets import QWidget, QApplication, QMainWindow, QPushButton, QVBoxLayout
 from PyQt5.QtCore import Qt
 #from PyQt5 import QtCore, QtGui, QtWidgets
 
 #from tierpsy.gui.SelectApp_ui import Ui_SelectApp
+import tierpsy
 from tierpsy.gui.GetMaskParams import GetMaskParams_GUI
 from tierpsy.gui.MWTrackerViewer import MWTrackerViewer_GUI
 from tierpsy.gui.SWTrackerViewer import SWTrackerViewer_GUI
 from tierpsy.gui.BatchProcessing import BatchProcessing_GUI
         
 
-widget_lists = {
-    'get_params':(GetMaskParams_GUI,"Set Parameters"),
-    'batch_processing':(BatchProcessing_GUI,"Batch Processing Multiple Files"),
-    'mwtracker':(MWTrackerViewer_GUI, "Tierpsy Tracker Viewer"),
-    'swtracker':(SWTrackerViewer_GUI, "Single Worm Viewer")
-}
+dd = [('get_params', (GetMaskParams_GUI,"Set Parameters")),
+    ('batch_processing', (BatchProcessing_GUI,"Batch Processing Multiple Files")),
+    ('mwtracker', (MWTrackerViewer_GUI, "Tierpsy Tracker Viewer")),
+    ('swtracker', (SWTrackerViewer_GUI, "Single Worm Viewer"))
+    ]
+widget_lists = OrderedDict(dd)
 
 
 class SelectApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.resize(304, 249)
+        self.setWindowTitle('Tierpsy Tracker ' + tierpsy.__version__)
+
         self.centralwidget = QWidget(self)
         self.centralwidget.setObjectName("centralwidget")
         self.setCentralWidget(self.centralwidget)
-
+         
         self.verticalLayout_C = QVBoxLayout(self.centralwidget)
         self.verticalLayout_C.setObjectName("verticalLayout_C")
 
